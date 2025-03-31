@@ -1,0 +1,66 @@
+.table-responsive {
+    margin-top: 20px;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.card {
+    margin-bottom: 20px;
+}
+
+.btn {
+    margin-right: 5px;
+}
+
+.logo-container {
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.logo-container img {
+    max-width: 300px;
+    height: auto;
+    margin-bottom: 1rem;
+}
+
+.logo-container h1 {
+    color: #F7931A;  /* Bitcoin orange */
+    margin-bottom: 0.5rem;
+}
+
+.logo-container .lead {
+    color: #6c757d;
+}
+
+/* Add a subtle animation to the logo */
+.logo-container img {
+    transition: transform 0.3s ease;
+}
+
+.logo-container img:hover {
+    transform: scale(1.05);
+}
+
+/* Update button colors to match Bitcoin orange */
+.btn-primary {
+    background-color: #F7931A;
+    border-color: #F7931A;
+}
+
+.btn-primary:hover {
+    background-color: #e67e00;
+    border-color: #e67e00;
+}
+
+.btn-outline-primary {
+    color: #F7931A;
+    border-color: #F7931A;
+}
+
+.btn-outline-primary:hover {
+    background-color: #F7931A;
+    border-color: #F7931A;
+} 

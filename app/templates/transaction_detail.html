@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Transaction Details</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <p><strong>TXID:</strong> {{ tx.txid }}</p>
+                <p><strong>Status:</strong> 
+                    <span class="badge {% if tx.status == 'confirmed' %}bg-success
+                                     {% elif tx.status == 'success' %}bg-primary
+                                     {% elif tx.status == 'failed' %}bg-danger
+                                     {% elif tx.status == 'error' %}bg-warning
+                                     {% else %}bg-secondary{% endif %}">
+                        {{ tx.status }}
+                    </span>
+                </p>
+                <p><strong>Push Attempts:</strong> {{ tx.push_attempts }}</p>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex gap-2 mb-2">
+                    <a href="https://blockstream.info/tx/{{ tx.txid }}" 
+                       class="btn btn-outline-primary" 
+                       target="_blank">
+                        <i class="bi bi-box-arrow-up-right"></i> Blockstream
+                    </a>
+                    <a href="https://mempool.space/tx/{{ tx.txid }}" 
+                       class="btn btn-outline-primary" 
+                       target="_blank">
+                        <i class="bi bi-box-arrow-up-right"></i> Mempool.space
+                    </a>
+                </div>
+                <button onclick="pushTransaction('{{ tx.txid }}')" class="btn btn-primary">
+                    Push Transaction
+                </button>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Raw Transaction</h6>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded"><code>{{ tx.raw_tx }}</code></pre>
+            </div>
+        </div>
+        
+        {% if tx.analysis_result %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Last API Response</h6>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded"><code>{{ tx.analysis_result }}</code></pre>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 
