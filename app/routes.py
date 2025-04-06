@@ -139,6 +139,14 @@ def push_transaction(txid):
 @bp.route('/transaction/<txid>/delete', methods=['POST'])
 def delete_transaction(txid):
     tx = Transaction.query.filter_by(txid=txid).first_or_404()
+    
+    # Only allow deletion of confirmed transactions
+    if tx.status != 'confirmed':
+        return jsonify({
+            'status': 'error',
+            'error': 'Only confirmed transactions can be deleted'
+        }), 403
+    
     db.session.delete(tx)
     db.session.commit()
     return jsonify({'status': 'success'}) 
