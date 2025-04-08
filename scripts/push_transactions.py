@@ -78,7 +78,7 @@ def update_transactions(db_path='instance/mempush.db'):
             if status != 'confirmed':
                 try:
                     response = requests.post(
-                        f'http://localhost:5000/transaction/{txid}/push',
+                        f'http://localhost:3010/transaction/{txid}/push',
                         headers={'Content-Type': 'application/json'}
                     )
                     response.raise_for_status()
