@@ -16,6 +16,7 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///mempush.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['ONION_URL'] = os.getenv('ONION_URL', 'your-onion-url')
 
     # Initialize extensions
     db.init_app(app)
@@ -24,5 +25,5 @@ def create_app():
     # Register blueprints
     from app.routes import bp
     app.register_blueprint(bp)
-
+    
     return app 

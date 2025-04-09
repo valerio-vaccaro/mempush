@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, current_app
 from app.models import Transaction
 from app import db
 import requests
@@ -8,17 +8,17 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', onion_url=current_app.config['ONION_URL'])
 
 @bp.route('/transactions')
 def transactions():
     txs = Transaction.query.order_by(Transaction.created_at.desc()).all()
-    return render_template('transaction_list.html', transactions=txs)
+    return render_template('transaction_list.html', transactions=txs, onion_url=current_app.config['ONION_URL'])
 
 @bp.route('/transaction/<txid>')
 def transaction_detail(txid):
     tx = Transaction.query.filter_by(txid=txid).first_or_404()
-    return render_template('transaction_detail.html', tx=tx)
+    return render_template('transaction_detail.html', tx=tx, onion_url=current_app.config['ONION_URL'])
 
 @bp.route('/transaction/submit', methods=['POST'])
 def submit_transaction():
