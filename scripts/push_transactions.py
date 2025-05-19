@@ -32,9 +32,9 @@ def list_transactions(db_path='instance/mempush.db', show_confirmed=True):
         
         # Filter out confirmed transactions if show_confirmed is False
         if not show_confirmed:
-            transactions = [tx for tx in transactions if tx[1] != 'confirmed']
+            transactions = [tx for tx in transactions if tx[1] not in ['confirmed', 'failed']]
             if not transactions:
-                print("No unconfirmed transactions found.")
+                print("No pending transactions found.")
                 return
         
         # Prepare data for tabulate

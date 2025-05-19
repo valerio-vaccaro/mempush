@@ -141,10 +141,10 @@ def delete_transaction(txid):
     tx = Transaction.query.filter_by(txid=txid).first_or_404()
     
     # Only allow deletion of confirmed transactions
-    if tx.status != 'confirmed':
+    if tx.status not in ['confirmed', 'failed']:
         return jsonify({
             'status': 'error',
-            'error': 'Only confirmed transactions can be deleted'
+            'error': 'Only confirmed or failed transactions can be deleted'
         }), 403
     
     db.session.delete(tx)
