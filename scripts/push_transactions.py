@@ -75,7 +75,7 @@ def update_transactions(db_path='instance/mempush.db'):
         
         for tx in transactions:
             txid, status, push_attempts, created_at, updated_at = tx
-            if status != 'confirmed':
+            if status not in ['confirmed', 'error']:
                 try:
                     response = requests.post(
                         f'http://localhost:3000/transaction/{txid}/push',
