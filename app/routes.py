@@ -4,6 +4,10 @@ from app import db
 import requests
 from bitcoinlib.transactions import Transaction as BtcTransaction
 
+service = 'https://mempool.space/'
+# service = 'https://blockstream.info/'
+
+
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
@@ -29,8 +33,8 @@ def submit_transaction():
     # Handle txid submission
     if txid:
         try:
-            # Fetch transaction from Blockstream API
-            response = requests.get(f'https://blockstream.info/api/tx/{txid}/hex')
+            # Fetch transaction from service API
+            response = requests.get(f'{service}/api/tx/{txid}/hex')
             if response.status_code != 200:
                 return jsonify({'error': 'Transaction not found'}), 404
             raw_tx = response.text
@@ -80,7 +84,7 @@ def push_transaction(txid):
 
     try:
         # First check if transaction is already confirmed
-        status_response = requests.get(f'https://blockstream.info/api/tx/{txid}')
+        status_response = requests.get(f'{service}/api/tx/{txid}')
         if status_response.status_code == 200:
             status_data = status_response.json()
             if status_data.get('status', {}).get('confirmed'):
@@ -100,10 +104,9 @@ def push_transaction(txid):
                     'analysis_result': tx.analysis_result
                 })
         elif status_response.status_code == 404:
-
             # If not confirmed, proceed with pushing
             response = requests.post(
-                'https://blockstream.info/api/tx',
+                f'{service}/api/tx',
                 data=tx.raw_tx,
                 headers={'Content-Type': 'text/plain'}
             )
