@@ -152,4 +152,90 @@ def delete_transaction(txid):
     
     db.session.delete(tx)
     db.session.commit()
-    return jsonify({'status': 'success'}) 
+    return jsonify({'status': 'success'})
+
+# API Routes
+@bp.route('/api/transactions', methods=['GET'])
+def api_get_transactions():
+    txs = Transaction.query.order_by(Transaction.created_at.desc()).all()
+    return jsonify([tx.to_dict() for tx in txs])
+
+@bp.route('/api/transaction/<txid>', methods=['GET'])
+def api_get_transaction(txid):
+    tx = Transaction.query.filter_by(txid=txid).first()
+    if not tx:
+        return jsonify({'error': 'Transaction not found'}), 404
+    return jsonify(tx.to_dict())
+
+@bp.route('/api/transaction', methods=['POST'])
+def api_post_txid():
+    data = request.get_json()
+    txid = data.get('txid')
+    if not txid:
+        return jsonify({'error': 'txid is required'}), 400
+    
+    try:
+        response = requests.get(f'{service}/api/tx/{txid}/hex')
+        if response.status_code != 200:
+            return jsonify({'error': 'Transaction not found'}), 404
+        raw_tx = response.text
+        
+        # Parse and validate
+        tx = BtcTransaction.parse_hex(raw_tx)
+        calculated_txid = tx.txid
+        
+        if txid != calculated_txid:
+            return jsonify({'error': 'Invalid txid'}), 400
+        
+        # Save to database
+        new_tx = Transaction(raw_tx=raw_tx, txid=calculated_txid)
+        db.session.add(new_tx)
+        db.session.commit()
+        
+        return jsonify(new_tx.to_dict()), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@bp.route('/api/transaction/push', methods=['POST'])
+def api_push_tx():
+    data = request.get_json()
+    raw_tx = data.get('raw_tx')
+    if not raw_tx:
+        return jsonify({'error': 'raw_tx is required'}), 400
+    
+    try:
+        # Validate hex format
+        if not all(c in '0123456789abcdefABCDEF' for c in raw_tx):
+            return jsonify({'error': 'Invalid hex format'}), 400
+        
+        # Parse transaction
+        tx = BtcTransaction.parse_hex(raw_tx)
+        txid = tx.txid
+        
+        # Save to database
+        new_tx = Transaction(raw_tx=raw_tx, txid=txid)
+        db.session.add(new_tx)
+        db.session.commit()
+        
+        # Push to mempool
+        response = requests.post(
+            f'{service}/api/tx',
+            data=raw_tx,
+            headers={'Content-Type': 'text/plain'}
+        )
+        
+        if response.status_code == 200:
+            new_tx.status = 'success'
+            new_tx.analysis_result = 'Transaction pushed successfully'
+        else:
+            new_tx.status = 'failed'
+            new_tx.analysis_result = response.text
+        
+        new_tx.push_attempts += 1
+        db.session.commit()
+        
+        return jsonify(new_tx.to_dict()), 201
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400 

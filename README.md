@@ -1,124 +1,139 @@
-# Mempush
+# 🚀 Mempush
 
 A lightweight Flask web application for managing and pushing Bitcoin transactions to the mempool. This tool provides a simple interface to submit raw transactions, track their status, and manually push them to the Bitcoin network.
 
-## Features
+## ✨ Features
 
-- 🚀 Submit raw Bitcoin transactions
-- 📊 Track transaction status (pending, confirmed, failed)
-- 🔄 Manual transaction pushing to mempool
-- 🗑️ Transaction deletion
-- 👁️ Toggle visibility of confirmed transactions
-- 📝 Transaction history management
-- ⚡ Real-time status updates
+- 🚀 **Submit raw Bitcoin transactions** - Upload transaction hex data directly
+- 📊 **Track transaction status** - Monitor pending, confirmed, and failed transactions
+- 🔄 **Manual transaction pushing** - Push transactions to mempool with one click
+- 🗑️ **Transaction deletion** - Clean up confirmed transactions from database
+- 👁️ **Toggle visibility** - Show/hide confirmed transactions in the interface
+- 📝 **Transaction history** - Complete audit trail of all transaction activities
+- ⚡ **Real-time updates** - Live status updates and mempool integration
+- 🔗 **RESTful API** - Full API access for programmatic transaction management
 
-## Quick Start
+## 🚀 Quick Start
 
-1. **Clone the repository**
+### 1. 📥 Clone the repository
 
 ```bash
 git clone https://github.com/valerio-vaccaro/mempush.git
 cd mempush
 ```
 
-2. **Set up virtual environment**
+### 2. 🐍 Set up virtual environment
 
 ```bash
 python -m venv venv
 source venv/bin/activate
 ```
 
-
-3. **Install dependencies**
+### 3. 📦 Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
+### 4. 🗄️ Initialize database
 
-5. **Run the application**
+```bash
+flask db upgrade
+```
+
+### 5. 🏃‍♂️ Run the application
 
 ```bash
 flask run
 ```
 
-6. **Call script**
-Seup a cron job to push transactions to the mempool (daily) or do manually.
+### 6. 🔄 Set up automated pushing (Optional)
+
+Set up a cron job to push transactions to the mempool daily or run manually:
 
 ```bash
 python scripts/push_transactions.py --hide-confirmed
 ```
 
+### 7. 🌐 Access the web interface
 
-6. **Access the web interface**
 Open your browser and navigate to `http://localhost:5000`
 
+## 🔌 API Endpoints
 
-## API Endpoints
+### 📋 Transaction Management
 
-### Transaction Management
+#### 🌐 Web Interface
+- `GET /` - Returns the main index page with transaction dashboard
+- `GET /transactions` - Returns a list of all transactions ordered by creation date (newest first)
+- `GET /transaction/<txid>` - Returns detailed information about a specific transaction
 
-- `GET /`
-  - Returns the main index page
+#### 🔌 REST API
+- `GET /api/transactions` - **List all transactions** - Returns JSON array of all known transactions
+- `GET /api/transaction/<txid>` - **Get transaction details** - Returns complete transaction information
+- `POST /api/transaction` - **Post transaction by txid** - Submit a txid to fetch and store transaction
+- `POST /api/transaction/push` - **Push raw transaction** - Submit hex transaction and push to mempool
 
-- `GET /transactions`
-  - Returns a list of all transactions ordered by creation date (newest first)
+#### 📝 API Request Examples
 
-- `GET /transaction/<txid>`
-  - Returns detailed information about a specific transaction
-  - Returns 404 if transaction not found
+**Submit a transaction by txid:**
+```bash
+curl -X POST http://localhost:5000/api/transaction \
+  -H "Content-Type: application/json" \
+  -d '{"txid": "abc123..."}'
+```
 
-- `POST /transaction/submit`
-  ```json
-  {
-    "raw_tx": "hex_string",
-    "txid": "optional_txid"  // If provided, will verify against calculated txid
-  }
-  ```
-  - Submit a new raw transaction to the system
-  - Validates hex format and transaction structure
-  - Returns 400 for invalid transactions
-  - Returns 201 with transaction details on success
+**Push a raw transaction:**
+```bash
+curl -X POST http://localhost:5000/api/transaction/push \
+  -H "Content-Type: application/json" \
+  -d '{"raw_tx": "0100000001..."}'
+```
 
-- `POST /transaction/<txid>/push`
-  - Pushes a transaction to the Bitcoin mempool
-  - Checks if transaction is already confirmed
-  - Updates transaction status (success/failed/confirmed)
-  - Returns transaction status and analysis result
-  - Returns 404 if transaction not found
+**Get all transactions:**
+```bash
+curl -X GET http://localhost:5000/api/transactions
+```
 
-- `POST /transaction/<txid>/delete`
-  - Deletes a confirmed transaction from the database
-  - Only allows deletion of confirmed transactions
-  - Returns 403 if transaction is not confirmed
-  - Returns 404 if transaction not found
+**Get specific transaction:**
+```bash
+curl -X GET http://localhost:5000/api/transaction/abc123...
+```
 
-### Response Status Codes
-- 200: Success
-- 201: Created
-- 400: Bad Request (invalid input)
-- 403: Forbidden (unauthorized action)
-- 404: Not Found
-- 500: Server Error
+## 🗄️ Data Model
 
-## Data Model
-
-### Transaction
+### 📋 Transaction
 The Transaction model represents a Bitcoin transaction in the system with the following fields:
 
-- `id` (Integer): Primary key
-- `raw_tx` (Text): Raw transaction hex string
-- `txid` (String[64]): Unique transaction ID
-- `status` (String[20]): Transaction status (default: 'pending')
-- `created_at` (DateTime): Creation timestamp
-- `updated_at` (DateTime): Last update timestamp
-- `push_attempts` (Integer): Number of push attempts (default: 0)
-- `analysis_result` (Text): Result of transaction analysis
+- 🔢 `id` (Integer): Primary key identifier
+- 📄 `raw_tx` (Text): Raw transaction hex string
+- 🆔 `txid` (String[64]): Unique transaction ID (SHA256 hash)
+- 📊 `status` (String[20]): Transaction status (default: 'pending')
+- 📅 `created_at` (DateTime): Creation timestamp
+- 🔄 `updated_at` (DateTime): Last update timestamp
+- 🔢 `push_attempts` (Integer): Number of push attempts (default: 0)
+- 📝 `analysis_result` (Text): Result of transaction analysis
 
-### Transaction Status
+### 📈 Transaction Status
 Possible transaction statuses:
-- `pending`: Initial state
-- `success`: Successfully pushed to mempool
-- `failed`: Failed to push to mempool
-- `confirmed`: Transaction is confirmed in blockchain
-- `error`: Error occurred during processing
+- ⏳ `pending`: Initial state - transaction added but not pushed
+- ✅ `success`: Successfully pushed to mempool
+- ❌ `failed`: Failed to push to mempool
+- 🔒 `confirmed`: Transaction is confirmed in blockchain
+- 💥 `error`: Error occurred during processing
+
+## 🛠️ Technical Details
+
+### 🔧 Dependencies
+- **Flask**: Web framework for the application
+- **SQLAlchemy**: Database ORM for transaction storage
+- **bitcoinlib**: Bitcoin transaction parsing and validation
+- **requests**: HTTP client for mempool API integration
+
+### 🌐 External Services
+- **mempool.space**: Primary mempool service for transaction pushing and status checking
+- **blockstream.info**: Alternative mempool service (configurable)
+
+## 📝 License
+
+This project is open source and available under the MIT License.
