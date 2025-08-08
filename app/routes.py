@@ -14,6 +14,10 @@ bp = Blueprint('main', __name__)
 def index():
     return render_template('index.html', onion_url=current_app.config['ONION_URL'])
 
+@bp.route('/about')
+def about():
+    return render_template('about.html', onion_url=current_app.config['ONION_URL'])
+
 @bp.route('/transactions')
 def transactions():
     txs = Transaction.query.order_by(Transaction.created_at.desc()).all()

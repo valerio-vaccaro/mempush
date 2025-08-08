@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">🚀 About MemPush</h1>
+        
+        <!-- Project Description -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="bi bi-info-circle"></i> Project Description</h3>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    MemPush is a lightweight Flask web application for managing and pushing Bitcoin transactions to the mempool. 
+                    This tool provides a simple interface to submit raw transactions, track their status, and manually push them to the Bitcoin network.
+                </p>
+                
+                <h5>✨ Key Features:</h5>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check-circle text-success"></i> Submit raw Bitcoin transactions</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Track transaction status (pending, confirmed, failed)</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Manual transaction pushing to mempool</li>
+                    <li><i class="bi bi-check-circle text-success"></i> RESTful API for programmatic access</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Transaction history management</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Real-time status updates</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- API Documentation -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="bi bi-code-slash"></i> API Documentation</h3>
+            </div>
+            <div class="card-body">
+                <h5>🔌 REST API Endpoints:</h5>
+                
+                <div class="mb-3">
+                    <h6><code>GET /api/transactions</code></h6>
+                    <p>Returns a JSON array of all known transactions ordered by creation date (newest first).</p>
+                    <div class="bg-light p-2 rounded">
+                        <small><strong>Example:</strong> <code>curl -X GET http://localhost:5000/api/transactions</code></small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <h6><code>GET /api/transaction/&lt;txid&gt;</code></h6>
+                    <p>Returns complete transaction information for a specific transaction ID.</p>
+                    <div class="bg-light p-2 rounded">
+                        <small><strong>Example:</strong> <code>curl -X GET http://localhost:5000/api/transaction/abc123...</code></small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <h6><code>POST /api/transaction</code></h6>
+                    <p>Submit a transaction ID to fetch and store the transaction from the mempool.</p>
+                    <div class="bg-light p-2 rounded">
+                        <small><strong>Request:</strong> <code>{"txid": "your_txid_here"}</code></small><br>
+                        <small><strong>Example:</strong> <code>curl -X POST http://localhost:5000/api/transaction -H "Content-Type: application/json" -d '{"txid": "abc123..."}'</code></small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <h6><code>POST /api/transaction/push</code></h6>
+                    <p>Submit a raw transaction in hex format and push it to the mempool.</p>
+                    <div class="bg-light p-2 rounded">
+                        <small><strong>Request:</strong> <code>{"raw_tx": "your_hex_transaction_here"}</code></small><br>
+                        <small><strong>Example:</strong> <code>curl -X POST http://localhost:5000/api/transaction/push -H "Content-Type: application/json" -d '{"raw_tx": "0100000001..."}'</code></small>
+                    </div>
+                </div>
+
+                <h5>📊 Response Status Codes:</h5>
+                <ul class="list-unstyled">
+                    <li><span class="badge bg-success">200</span> Success</li>
+                    <li><span class="badge bg-success">201</span> Created</li>
+                    <li><span class="badge bg-warning">400</span> Bad Request (invalid input)</li>
+                    <li><span class="badge bg-danger">403</span> Forbidden (unauthorized action)</li>
+                    <li><span class="badge bg-secondary">404</span> Not Found</li>
+                    <li><span class="badge bg-danger">500</span> Server Error</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Technical Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="bi bi-gear"></i> Technical Details</h3>
+            </div>
+            <div class="card-body">
+                <h5>🔧 Dependencies:</h5>
+                <ul>
+                    <li><strong>Flask:</strong> Web framework for the application</li>
+                    <li><strong>SQLAlchemy:</strong> Database ORM for transaction storage</li>
+                    <li><strong>bitcoinlib:</strong> Bitcoin transaction parsing and validation</li>
+                    <li><strong>requests:</strong> HTTP client for mempool API integration</li>
+                </ul>
+
+                <h5>🌐 External Services:</h5>
+                <ul>
+                    <li><strong>mempool.space:</strong> Primary mempool service for transaction pushing and status checking</li>
+                    <li><strong>blockstream.info:</strong> Alternative mempool service (configurable)</li>
+                </ul>
+
+                <h5>🔐 Security Features:</h5>
+                <ul>
+                    <li>Input validation for hex format</li>
+                    <li>Transaction ID verification</li>
+                    <li>Error handling and logging</li>
+                    <li>Database transaction integrity</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- GitHub Link -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="bi bi-github"></i> Open Source</h3>
+            </div>
+            <div class="card-body text-center">
+                <p class="lead">This project is open source and available on GitHub!</p>
+                <a href="https://github.com/valerio-vaccaro/mempush" target="_blank" class="btn btn-dark btn-lg">
+                    <i class="bi bi-github"></i> View on GitHub
+                </a>
+                <p class="mt-3">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> 
+                        This project is available under the MIT License.
+                    </small>
+                </p>
+            </div>
+        </div>
+
+        <!-- Quick Start -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3><i class="bi bi-rocket"></i> Quick Start</h3>
+            </div>
+            <div class="card-body">
+                <h5>🚀 Getting Started:</h5>
+                <ol>
+                    <li><strong>Clone the repository:</strong><br>
+                        <code>git clone https://github.com/valerio-vaccaro/mempush.git</code></li>
+                    <li><strong>Set up virtual environment:</strong><br>
+                        <code>python -m venv venv && source venv/bin/activate</code></li>
+                    <li><strong>Install dependencies:</strong><br>
+                        <code>pip install -r requirements.txt</code></li>
+                    <li><strong>Initialize database:</strong><br>
+                        <code>flask db upgrade</code></li>
+                    <li><strong>Run the application:</strong><br>
+                        <code>flask run</code></li>
+                    <li><strong>Access the web interface:</strong><br>
+                        Open your browser and navigate to <code>http://localhost:5000</code></li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
