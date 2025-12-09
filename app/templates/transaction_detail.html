@@ -62,13 +62,42 @@
 </div>
 
 <script>
-const network = '{{ network }}';
+// Get network from template variable or extract from URL
+let network = '{{ network|default("") }}';
+if (!network || network === '') {
+    // Fallback: extract network from current URL path
+    const pathParts = window.location.pathname.split('/').filter(p => p);
+    const networkIndex = pathParts.findIndex(p => ['mainchain', 'testnetv3', 'testnetv4', 'signet'].includes(p));
+    if (networkIndex !== -1) {
+        network = pathParts[networkIndex];
+    } else {
+        network = 'mainchain'; // Default fallback
+    }
+}
 
 function pushTransaction(txid) {
+    if (!network || network === '') {
+        console.error('Network is missing! Current URL:', window.location.pathname);
+        alert('Error: Network information is missing. Please refresh the page.');
+        return;
+    }
+    console.log('Pushing transaction', txid, 'on network', network);
     fetch(`/${network}/transaction/${txid}/push`, {
         method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || `HTTP error! status: ${response.status}`);
+            }).catch(() => {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.status === 'success' || data.status === 'confirmed') {
             window.location.reload();
@@ -78,7 +107,7 @@ function pushTransaction(txid) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred while pushing the transaction');
+        alert('An error occurred while pushing the transaction: ' + error.message);
     });
 }
 </script>

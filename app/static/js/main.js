@@ -6,8 +6,14 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const rawTx = document.getElementById('rawTx').value;
             
+            // Extract network from current URL path
+            const pathParts = window.location.pathname.split('/').filter(p => p);
+            const validNetworks = ['mainchain', 'testnetv3', 'testnetv4', 'signet'];
+            const networkIndex = pathParts.findIndex(p => validNetworks.includes(p));
+            const network = networkIndex !== -1 ? pathParts[networkIndex] : 'mainchain';
+            
             try {
-                const response = await fetch('/transaction/submit', {
+                const response = await fetch(`/${network}/transaction/submit`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -15,58 +21,85 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ raw_tx: rawTx }),
                 });
                 
-                if (response.ok) {
-                    const result = await response.json();
-                    window.location.href = `/transaction/${result.txid}`;
-                } else {
-                    alert('Error submitting transaction');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `HTTP error! status: ${response.status}` }));
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
+                
+                const result = await response.json();
+                window.location.href = `/${network}/transaction/${result.txid}`;
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error submitting transaction');
+                alert('Error submitting transaction: ' + error.message);
             }
         });
     }
 
     // Handle push to mempool buttons
     window.pushTransaction = async function(txid) {
+        // Extract network from current URL path
+        const pathParts = window.location.pathname.split('/').filter(p => p);
+        const validNetworks = ['mainchain', 'testnetv3', 'testnetv4', 'signet'];
+        const networkIndex = pathParts.findIndex(p => validNetworks.includes(p));
+        const network = networkIndex !== -1 ? pathParts[networkIndex] : 'mainchain';
+        
         try {
-            const response = await fetch(`/transaction/${txid}/push`, {
+            const response = await fetch(`/${network}/transaction/${txid}/push`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 }
             });
             
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: `HTTP error! status: ${response.status}` }));
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+            
             const result = await response.json();
-            if (response.ok) {
+            if (result.status === 'success' || result.status === 'confirmed') {
                 alert('Transaction pushed successfully');
                 location.reload();
             } else {
-                alert(`Error: ${result.error}`);
+                alert(`Error: ${result.error || result.analysis_result || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error pushing transaction');
+            alert('Error pushing transaction: ' + error.message);
         }
     };
 
     // Handle delete transaction buttons
     window.deleteTransaction = async function(txid) {
         if (confirm('Are you sure you want to delete this transaction?')) {
+            // Extract network from current URL path
+            const pathParts = window.location.pathname.split('/').filter(p => p);
+            const validNetworks = ['mainchain', 'testnetv3', 'testnetv4', 'signet'];
+            const networkIndex = pathParts.findIndex(p => validNetworks.includes(p));
+            const network = networkIndex !== -1 ? pathParts[networkIndex] : 'mainchain';
+            
             try {
-                const response = await fetch(`/transaction/${txid}/delete`, {
+                const response = await fetch(`/${network}/transaction/${txid}/delete`, {
                     method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
                 });
                 
-                if (response.ok) {
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `HTTP error! status: ${response.status}` }));
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                if (result.status === 'success') {
                     location.reload();
                 } else {
-                    alert('Error deleting transaction');
+                    alert(`Error: ${result.error || 'Unknown error'}`);
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error deleting transaction');
+                alert('Error deleting transaction: ' + error.message);
             }
         }
     };

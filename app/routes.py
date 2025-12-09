@@ -39,7 +39,7 @@ def about(network):
 def transactions(network):
     if not is_valid_network(network):
         abort(404)
-    txs = Transaction.query.filter_by(network=network).order_by(Transaction.created_at.desc()).all()
+    txs = Transaction.get_by_network(network).all()
     return render_template('transaction_list.html', 
                          transactions=txs, 
                          network=network,
@@ -50,7 +50,9 @@ def transactions(network):
 def transaction_detail(network, txid):
     if not is_valid_network(network):
         abort(404)
-    tx = Transaction.query.filter_by(txid=txid, network=network).first_or_404()
+    tx = Transaction.get_by_txid_and_network(txid, network)
+    if not tx:
+        abort(404)
     explorer_url = get_explorer_url(network)
     mempool_url = get_mempool_url(network)
     return render_template('transaction_detail.html', 
@@ -102,7 +104,7 @@ def submit_transaction(network):
             return jsonify({'error': 'Provided txid does not match calculated txid'}), 400
 
         # Check if transaction already exists for this network
-        existing_tx = Transaction.query.filter_by(txid=calculated_txid, network=network).first()
+        existing_tx = Transaction.get_by_txid_and_network(calculated_txid, network)
         if existing_tx:
             return jsonify(existing_tx.to_dict()), 200
 
@@ -121,9 +123,11 @@ def submit_transaction(network):
 @bp.route('/<network>/transaction/<txid>/push', methods=['POST'])
 def push_transaction(network, txid):
     if not is_valid_network(network):
-        abort(404)
+        return jsonify({'error': 'Invalid network'}), 404
     
-    tx = Transaction.query.filter_by(txid=txid, network=network).first_or_404()
+    tx = Transaction.get_by_txid_and_network(txid, network)
+    if not tx:
+        return jsonify({'error': 'Transaction not found'}), 404
     service = get_service_url(network)
     
     if tx.status == 'confirmed':
@@ -194,7 +198,9 @@ def delete_transaction(network, txid):
     if not is_valid_network(network):
         abort(404)
     
-    tx = Transaction.query.filter_by(txid=txid, network=network).first_or_404()
+    tx = Transaction.get_by_txid_and_network(txid, network)
+    if not tx:
+        return jsonify({'error': 'Transaction not found'}), 404
     
     # Only allow deletion of confirmed transactions
     if tx.status not in ['confirmed', 'failed']:
@@ -212,14 +218,14 @@ def delete_transaction(network, txid):
 def api_get_transactions(network):
     if not is_valid_network(network):
         abort(404)
-    txs = Transaction.query.filter_by(network=network).order_by(Transaction.created_at.desc()).all()
+    txs = Transaction.get_by_network(network).all()
     return jsonify([tx.to_dict() for tx in txs])
 
 @bp.route('/<network>/api/transaction/<txid>', methods=['GET'])
 def api_get_transaction(network, txid):
     if not is_valid_network(network):
         abort(404)
-    tx = Transaction.query.filter_by(txid=txid, network=network).first()
+    tx = Transaction.get_by_txid_and_network(txid, network)
     if not tx:
         return jsonify({'error': 'Transaction not found'}), 404
     return jsonify(tx.to_dict())
@@ -250,7 +256,7 @@ def api_post_txid(network):
             return jsonify({'error': 'Invalid txid'}), 400
         
         # Check if transaction already exists for this network
-        existing_tx = Transaction.query.filter_by(txid=calculated_txid, network=network).first()
+        existing_tx = Transaction.get_by_txid_and_network(calculated_txid, network)
         if existing_tx:
             return jsonify(existing_tx.to_dict()), 200
         
@@ -286,7 +292,7 @@ def api_push_tx(network):
         txid = tx.txid
         
         # Check if transaction already exists for this network
-        existing_tx = Transaction.query.filter_by(txid=txid, network=network).first()
+        existing_tx = Transaction.get_by_txid_and_network(txid, network)
         if existing_tx:
             # Update existing transaction
             new_tx = existing_tx
