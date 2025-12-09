@@ -24,6 +24,7 @@
                     <li><i class="bi bi-check-circle text-success"></i> RESTful API for programmatic access</li>
                     <li><i class="bi bi-check-circle text-success"></i> Transaction history management</li>
                     <li><i class="bi bi-check-circle text-success"></i> Real-time status updates</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Multi-network support (mainchain, testnetv3, testnetv4, signet)</li>
                 </ul>
             </div>
         </div>
@@ -34,39 +35,59 @@
                 <h3><i class="bi bi-code-slash"></i> API Documentation</h3>
             </div>
             <div class="card-body">
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-info-circle"></i> <strong>Note:</strong> All API endpoints are network-specific. Replace <code>&lt;network&gt;</code> with one of: <code>mainchain</code>, <code>testnetv3</code>, <code>testnetv4</code>, or <code>signet</code>.
+                </div>
+                
                 <h5>🔌 REST API Endpoints:</h5>
                 
                 <div class="mb-3">
-                    <h6><code>GET /api/transactions</code></h6>
-                    <p>Returns a JSON array of all known transactions ordered by creation date (newest first).</p>
+                    <h6><code>GET /&lt;network&gt;/api/transactions</code></h6>
+                    <p>Returns a JSON array of all transactions for the specified network, ordered by creation date (newest first).</p>
                     <div class="bg-light p-2 rounded">
-                        <small><strong>Example:</strong> <code>curl -X GET http://localhost:5000/api/transactions</code></small>
+                        <small><strong>Example:</strong> <code>curl -X GET http://localhost:5000/mainchain/api/transactions</code></small>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <h6><code>GET /api/transaction/&lt;txid&gt;</code></h6>
-                    <p>Returns complete transaction information for a specific transaction ID.</p>
+                    <h6><code>GET /&lt;network&gt;/api/transaction/&lt;txid&gt;</code></h6>
+                    <p>Returns complete transaction information for a specific transaction ID on the specified network.</p>
                     <div class="bg-light p-2 rounded">
-                        <small><strong>Example:</strong> <code>curl -X GET http://localhost:5000/api/transaction/abc123...</code></small>
+                        <small><strong>Example:</strong> <code>curl -X GET http://localhost:5000/mainchain/api/transaction/abc123...</code></small>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <h6><code>POST /api/transaction</code></h6>
-                    <p>Submit a transaction ID to fetch and store the transaction from the mempool.</p>
+                    <h6><code>POST /&lt;network&gt;/api/transaction</code></h6>
+                    <p>Submit a transaction ID to fetch and store the transaction from the mempool for the specified network.</p>
                     <div class="bg-light p-2 rounded">
                         <small><strong>Request:</strong> <code>{"txid": "your_txid_here"}</code></small><br>
-                        <small><strong>Example:</strong> <code>curl -X POST http://localhost:5000/api/transaction -H "Content-Type: application/json" -d '{"txid": "abc123..."}'</code></small>
+                        <small><strong>Example:</strong> <code>curl -X POST http://localhost:5000/mainchain/api/transaction -H "Content-Type: application/json" -d '{"txid": "abc123..."}'</code></small>
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <h6><code>POST /api/transaction/push</code></h6>
-                    <p>Submit a raw transaction in hex format and push it to the mempool.</p>
+                    <h6><code>POST /&lt;network&gt;/api/transaction/push</code></h6>
+                    <p>Submit a raw transaction in hex format and push it to the mempool for the specified network.</p>
                     <div class="bg-light p-2 rounded">
                         <small><strong>Request:</strong> <code>{"raw_tx": "your_hex_transaction_here"}</code></small><br>
-                        <small><strong>Example:</strong> <code>curl -X POST http://localhost:5000/api/transaction/push -H "Content-Type: application/json" -d '{"raw_tx": "0100000001..."}'</code></small>
+                        <small><strong>Example:</strong> <code>curl -X POST http://localhost:5000/testnetv3/api/transaction/push -H "Content-Type: application/json" -d '{"raw_tx": "0100000001..."}'</code></small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <h6><code>POST /&lt;network&gt;/transaction/&lt;txid&gt;/push</code></h6>
+                    <p>Push an existing transaction to the mempool for the specified network.</p>
+                    <div class="bg-light p-2 rounded">
+                        <small><strong>Example:</strong> <code>curl -X POST http://localhost:5000/mainchain/transaction/abc123.../push</code></small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <h6><code>POST /&lt;network&gt;/transaction/&lt;txid&gt;/delete</code></h6>
+                    <p>Delete a confirmed or failed transaction from the specified network.</p>
+                    <div class="bg-light p-2 rounded">
+                        <small><strong>Example:</strong> <code>curl -X POST http://localhost:5000/mainchain/transaction/abc123.../delete</code></small>
                     </div>
                 </div>
 
@@ -97,9 +118,19 @@
                 </ul>
 
                 <h5>🌐 External Services:</h5>
+                <p><strong>mempool.space:</strong> Primary mempool service for transaction pushing and status checking</p>
                 <ul>
-                    <li><strong>mempool.space:</strong> Primary mempool service for transaction pushing and status checking</li>
-                    <li><strong>blockstream.info:</strong> Alternative mempool service (configurable)</li>
+                    <li>Mainchain: <code>https://mempool.space/</code></li>
+                    <li>Testnet v3: <code>https://mempool.space/testnet/</code></li>
+                    <li>Testnet v4: <code>https://mempool.space/testnet4/</code></li>
+                    <li>Signet: <code>https://mempool.space/signet/</code></li>
+                </ul>
+                <p><strong>mempool.space:</strong> Explorer service</p>
+                <ul>
+                    <li>Mainchain: <code>https://mempool.space/</code></li>
+                    <li>Testnet v3: <code>https://mempool.space/testnet/</code></li>
+                    <li>Testnet v4: <code>https://mempool.space/testnet4/</code></li>
+                    <li>Signet: <code>https://mempool.space/signet/</code></li>
                 </ul>
 
                 <h5>🔐 Security Features:</h5>
@@ -150,8 +181,18 @@
                     <li><strong>Run the application:</strong><br>
                         <code>flask run</code></li>
                     <li><strong>Access the web interface:</strong><br>
-                        Open your browser and navigate to <code>http://localhost:5000</code></li>
+                        Open your browser and navigate to <code>http://localhost:5000</code> (redirects to <code>/mainchain/</code>)</li>
+                    <li><strong>Switch networks:</strong><br>
+                        Use the network dropdown in the navigation bar to switch between mainchain, testnetv3, testnetv4, and signet</li>
                 </ol>
+                
+                <h5>🌐 Supported Networks:</h5>
+                <ul>
+                    <li><strong>Mainchain:</strong> <code>http://localhost:5000/mainchain/</code></li>
+                    <li><strong>Testnet v3:</strong> <code>http://localhost:5000/testnetv3/</code></li>
+                    <li><strong>Testnet v4:</strong> <code>http://localhost:5000/testnetv4/</code></li>
+                    <li><strong>Signet:</strong> <code>http://localhost:5000/signet/</code></li>
+                </ul>
             </div>
         </div>
     </div>

@@ -1,8 +1,8 @@
-"""create db
+"""empty message
 
-Revision ID: 303e3da7693f
+Revision ID: a0bdc059621a
 Revises: 
-Create Date: 2025-04-04 09:43:34.236978
+Create Date: 2025-12-09 17:30:39.576980
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '303e3da7693f'
+revision = 'a0bdc059621a'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,13 +22,14 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('raw_tx', sa.Text(), nullable=False),
     sa.Column('txid', sa.String(length=64), nullable=False),
+    sa.Column('network', sa.String(length=20), nullable=False),
     sa.Column('status', sa.String(length=20), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.Column('push_attempts', sa.Integer(), nullable=True),
     sa.Column('analysis_result', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('txid')
+    sa.UniqueConstraint('txid', 'network', name='_txid_network_uc')
     )
     # ### end Alembic commands ###
 

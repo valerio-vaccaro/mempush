@@ -1,38 +1,75 @@
-from flask import Blueprint, render_template, request, jsonify, current_app
+from flask import Blueprint, render_template, request, jsonify, current_app, redirect, url_for, abort
 from app.models import Transaction
 from app import db
+from app.network_config import get_mempool_url, get_explorer_url, is_valid_network, VALID_NETWORKS
 import requests
 from bitcoinlib.transactions import Transaction as BtcTransaction
 
-service = 'https://mempool.space/'
-# service = 'https://blockstream.info/'
-
-
 bp = Blueprint('main', __name__)
 
+def get_service_url(network):
+    """Get mempool service URL for a given network"""
+    return get_mempool_url(network)
+
+# Redirect root to mainchain
 @bp.route('/')
-def index():
-    return render_template('index.html', onion_url=current_app.config['ONION_URL'])
+def root():
+    return redirect(url_for('main.index', network='mainchain'))
 
-@bp.route('/about')
-def about():
-    return render_template('about.html', onion_url=current_app.config['ONION_URL'])
+# Network-specific routes
+@bp.route('/<network>/')
+def index(network):
+    if not is_valid_network(network):
+        abort(404)
+    return render_template('index.html', 
+                         network=network, 
+                         networks=VALID_NETWORKS,
+                         onion_url=current_app.config['ONION_URL'])
 
-@bp.route('/transactions')
-def transactions():
-    txs = Transaction.query.order_by(Transaction.created_at.desc()).all()
-    return render_template('transaction_list.html', transactions=txs, onion_url=current_app.config['ONION_URL'])
+@bp.route('/<network>/about')
+def about(network):
+    if not is_valid_network(network):
+        abort(404)
+    return render_template('about.html', 
+                         network=network,
+                         networks=VALID_NETWORKS,
+                         onion_url=current_app.config['ONION_URL'])
 
-@bp.route('/transaction/<txid>')
-def transaction_detail(txid):
-    tx = Transaction.query.filter_by(txid=txid).first_or_404()
-    return render_template('transaction_detail.html', tx=tx, onion_url=current_app.config['ONION_URL'])
+@bp.route('/<network>/transactions')
+def transactions(network):
+    if not is_valid_network(network):
+        abort(404)
+    txs = Transaction.query.filter_by(network=network).order_by(Transaction.created_at.desc()).all()
+    return render_template('transaction_list.html', 
+                         transactions=txs, 
+                         network=network,
+                         networks=VALID_NETWORKS,
+                         onion_url=current_app.config['ONION_URL'])
 
-@bp.route('/transaction/submit', methods=['POST'])
-def submit_transaction():
+@bp.route('/<network>/transaction/<txid>')
+def transaction_detail(network, txid):
+    if not is_valid_network(network):
+        abort(404)
+    tx = Transaction.query.filter_by(txid=txid, network=network).first_or_404()
+    explorer_url = get_explorer_url(network)
+    mempool_url = get_mempool_url(network)
+    return render_template('transaction_detail.html', 
+                         tx=tx, 
+                         network=network,
+                         networks=VALID_NETWORKS,
+                         explorer_url=explorer_url,
+                         mempool_url=mempool_url,
+                         onion_url=current_app.config['ONION_URL'])
+
+@bp.route('/<network>/transaction/submit', methods=['POST'])
+def submit_transaction(network):
+    if not is_valid_network(network):
+        abort(404)
+    
     data = request.get_json()
     raw_tx = data.get('raw_tx')
     txid = data.get('txid')
+    service = get_service_url(network)
     
     # Handle txid submission
     if txid:
@@ -64,8 +101,13 @@ def submit_transaction():
         if txid and txid != calculated_txid:
             return jsonify({'error': 'Provided txid does not match calculated txid'}), 400
 
-        # Create new transaction with calculated txid
-        tx = Transaction(raw_tx=raw_tx, txid=calculated_txid)
+        # Check if transaction already exists for this network
+        existing_tx = Transaction.query.filter_by(txid=calculated_txid, network=network).first()
+        if existing_tx:
+            return jsonify(existing_tx.to_dict()), 200
+
+        # Create new transaction with calculated txid and network
+        tx = Transaction(raw_tx=raw_tx, txid=calculated_txid, network=network)
         db.session.add(tx)
         db.session.commit()
 
@@ -76,9 +118,13 @@ def submit_transaction():
     except Exception as e:
         return jsonify({'error': f'Error processing transaction: {str(e)}'}), 400
 
-@bp.route('/transaction/<txid>/push', methods=['POST'])
-def push_transaction(txid):
-    tx = Transaction.query.filter_by(txid=txid).first_or_404()
+@bp.route('/<network>/transaction/<txid>/push', methods=['POST'])
+def push_transaction(network, txid):
+    if not is_valid_network(network):
+        abort(404)
+    
+    tx = Transaction.query.filter_by(txid=txid, network=network).first_or_404()
+    service = get_service_url(network)
     
     if tx.status == 'confirmed':
         return jsonify({
@@ -143,9 +189,12 @@ def push_transaction(txid):
             'analysis_result': tx.analysis_result
         }), 500
 
-@bp.route('/transaction/<txid>/delete', methods=['POST'])
-def delete_transaction(txid):
-    tx = Transaction.query.filter_by(txid=txid).first_or_404()
+@bp.route('/<network>/transaction/<txid>/delete', methods=['POST'])
+def delete_transaction(network, txid):
+    if not is_valid_network(network):
+        abort(404)
+    
+    tx = Transaction.query.filter_by(txid=txid, network=network).first_or_404()
     
     # Only allow deletion of confirmed transactions
     if tx.status not in ['confirmed', 'failed']:
@@ -159,24 +208,33 @@ def delete_transaction(txid):
     return jsonify({'status': 'success'})
 
 # API Routes
-@bp.route('/api/transactions', methods=['GET'])
-def api_get_transactions():
-    txs = Transaction.query.order_by(Transaction.created_at.desc()).all()
+@bp.route('/<network>/api/transactions', methods=['GET'])
+def api_get_transactions(network):
+    if not is_valid_network(network):
+        abort(404)
+    txs = Transaction.query.filter_by(network=network).order_by(Transaction.created_at.desc()).all()
     return jsonify([tx.to_dict() for tx in txs])
 
-@bp.route('/api/transaction/<txid>', methods=['GET'])
-def api_get_transaction(txid):
-    tx = Transaction.query.filter_by(txid=txid).first()
+@bp.route('/<network>/api/transaction/<txid>', methods=['GET'])
+def api_get_transaction(network, txid):
+    if not is_valid_network(network):
+        abort(404)
+    tx = Transaction.query.filter_by(txid=txid, network=network).first()
     if not tx:
         return jsonify({'error': 'Transaction not found'}), 404
     return jsonify(tx.to_dict())
 
-@bp.route('/api/transaction', methods=['POST'])
-def api_post_txid():
+@bp.route('/<network>/api/transaction', methods=['POST'])
+def api_post_txid(network):
+    if not is_valid_network(network):
+        abort(404)
+    
     data = request.get_json()
     txid = data.get('txid')
     if not txid:
         return jsonify({'error': 'txid is required'}), 400
+    
+    service = get_service_url(network)
     
     try:
         response = requests.get(f'{service}/api/tx/{txid}/hex')
@@ -191,8 +249,13 @@ def api_post_txid():
         if txid != calculated_txid:
             return jsonify({'error': 'Invalid txid'}), 400
         
+        # Check if transaction already exists for this network
+        existing_tx = Transaction.query.filter_by(txid=calculated_txid, network=network).first()
+        if existing_tx:
+            return jsonify(existing_tx.to_dict()), 200
+        
         # Save to database
-        new_tx = Transaction(raw_tx=raw_tx, txid=calculated_txid)
+        new_tx = Transaction(raw_tx=raw_tx, txid=calculated_txid, network=network)
         db.session.add(new_tx)
         db.session.commit()
         
@@ -201,12 +264,17 @@ def api_post_txid():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-@bp.route('/api/transaction/push', methods=['POST'])
-def api_push_tx():
+@bp.route('/<network>/api/transaction/push', methods=['POST'])
+def api_push_tx(network):
+    if not is_valid_network(network):
+        abort(404)
+    
     data = request.get_json()
     raw_tx = data.get('raw_tx')
     if not raw_tx:
         return jsonify({'error': 'raw_tx is required'}), 400
+    
+    service = get_service_url(network)
     
     try:
         # Validate hex format
@@ -217,10 +285,16 @@ def api_push_tx():
         tx = BtcTransaction.parse_hex(raw_tx)
         txid = tx.txid
         
-        # Save to database
-        new_tx = Transaction(raw_tx=raw_tx, txid=txid)
-        db.session.add(new_tx)
-        db.session.commit()
+        # Check if transaction already exists for this network
+        existing_tx = Transaction.query.filter_by(txid=txid, network=network).first()
+        if existing_tx:
+            # Update existing transaction
+            new_tx = existing_tx
+        else:
+            # Save to database
+            new_tx = Transaction(raw_tx=raw_tx, txid=txid, network=network)
+            db.session.add(new_tx)
+            db.session.commit()
         
         # Push to mempool
         response = requests.post(
@@ -242,4 +316,4 @@ def api_push_tx():
         return jsonify(new_tx.to_dict()), 201
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 400 
+        return jsonify({'error': str(e)}), 400

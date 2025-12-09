@@ -1,13 +1,17 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from flask_migrate import Migrate, upgrade, stamp
 from dotenv import load_dotenv
 import os
+import logging
+from sqlalchemy import inspect
 
 load_dotenv()
 
 db = SQLAlchemy()
 migrate = Migrate()
+
+logger = logging.getLogger(__name__)
 
 def create_app():
     app = Flask(__name__)

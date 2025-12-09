@@ -23,7 +23,7 @@
         <tbody>
             {% for tx in transactions %}
             <tr data-status="{{ tx.status }}">
-                <td><a href="{{ url_for('main.transaction_detail', txid=tx.txid) }}">{{ tx.txid }}</a></td>
+                <td><a href="{{ url_for('main.transaction_detail', network=network, txid=tx.txid) }}">{{ tx.txid }}</a></td>
                 <td>
                     <span class="badge {% if tx.status == 'confirmed' %}bg-success
                                      {% elif tx.status == 'success' %}bg-primary
@@ -51,9 +51,29 @@
 </div>
 
 <script>
+const network = '{{ network }}';
+
+function pushTransaction(txid) {
+    fetch(`/${network}/transaction/${txid}/push`, {
+        method: 'POST',
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' || data.status === 'confirmed') {
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || data.analysis_result || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while pushing the transaction');
+    });
+}
+
 function deleteTransaction(txid) {
     if (confirm('Are you sure you want to delete this transaction?')) {
-        fetch(`/transaction/${txid}/delete`, {
+        fetch(`/${network}/transaction/${txid}/delete`, {
             method: 'POST',
         })
         .then(response => response.json())

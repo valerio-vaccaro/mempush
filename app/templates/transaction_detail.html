@@ -22,12 +22,12 @@
             </div>
             <div class="col-md-6">
                 <div class="d-flex gap-2 mb-2">
-                    <a href="https://blockstream.info/tx/{{ tx.txid }}" 
+                    <a href="{{ explorer_url }}tx/{{ tx.txid }}" 
                        class="btn btn-outline-primary" 
                        target="_blank">
-                        <i class="bi bi-box-arrow-up-right"></i> Blockstream
+                        <i class="bi bi-box-arrow-up-right"></i> Mempool.space
                     </a>
-                    <a href="https://mempool.space/tx/{{ tx.txid }}" 
+                    <a href="{{ mempool_url }}tx/{{ tx.txid }}" 
                        class="btn btn-outline-primary" 
                        target="_blank">
                         <i class="bi bi-box-arrow-up-right"></i> Mempool.space
@@ -60,4 +60,26 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+const network = '{{ network }}';
+
+function pushTransaction(txid) {
+    fetch(`/${network}/transaction/${txid}/push`, {
+        method: 'POST',
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' || data.status === 'confirmed') {
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || data.analysis_result || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while pushing the transaction');
+    });
+}
+</script>
 {% endblock %} 

@@ -62,7 +62,8 @@ document.getElementById('txidForm').addEventListener('submit', function(e) {
 });
 
 function submitTransaction(data) {
-    fetch('/transaction/submit', {
+    const network = '{{ network }}';
+    fetch(`/${network}/transaction/submit`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -75,7 +76,7 @@ function submitTransaction(data) {
             alert(data.error);
             return;
         }
-        window.location.href = `/transaction/${data.txid}`;
+        window.location.href = `/${network}/transaction/${data.txid}`;
     })
     .catch(error => {
         console.error('Error:', error);

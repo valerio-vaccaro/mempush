@@ -4,18 +4,22 @@ from datetime import datetime
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     raw_tx = db.Column(db.Text(), nullable=False)
-    txid = db.Column(db.String(64), unique=True, nullable=False)
+    txid = db.Column(db.String(64), nullable=False)
+    network = db.Column(db.String(20), nullable=False, default='mainchain')
     status = db.Column(db.String(20), default='pending')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     push_attempts = db.Column(db.Integer, default=0)
     analysis_result = db.Column(db.Text)
 
+    __table_args__ = (db.UniqueConstraint('txid', 'network', name='_txid_network_uc'),)
+
     def to_dict(self):
         return {
             'id': self.id,
             'raw_tx': self.raw_tx,
             'txid': self.txid,
+            'network': self.network,
             'status': self.status,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
