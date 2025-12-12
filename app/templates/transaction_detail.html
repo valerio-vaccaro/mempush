@@ -27,11 +27,6 @@
                        target="_blank">
                         <i class="bi bi-box-arrow-up-right"></i> Mempool.space
                     </a>
-                    <a href="{{ mempool_url }}tx/{{ tx.txid }}" 
-                       class="btn btn-outline-primary" 
-                       target="_blank">
-                        <i class="bi bi-box-arrow-up-right"></i> Mempool.space
-                    </a>
                 </div>
                 <button onclick="pushTransaction('{{ tx.txid }}')" class="btn btn-primary">
                     Push Transaction
@@ -45,6 +40,24 @@
             </div>
             <div class="card-body">
                 <pre class="bg-light p-3 rounded"><code>{{ tx.raw_tx }}</code></pre>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">Decoded Transaction</h6>
+            </div>
+            <div class="card-body">
+                <div id="decoded-tx-loading" class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Loading decoded transaction...</span>
+                </div>
+                <div id="decoded-tx-error" class="alert alert-danger d-none" role="alert">
+                    <strong>Error:</strong> <span id="decoded-tx-error-message"></span>
+                </div>
+                <pre id="decoded-tx-content" class="bg-light p-3 rounded d-none"><code></code></pre>
             </div>
         </div>
         
@@ -73,6 +86,57 @@ if (!network || network === '') {
     } else {
         network = 'mainchain'; // Default fallback
     }
+}
+
+// Map network names to mempool.space API paths
+function getMempoolApiUrl(network, txid) {
+    const baseUrls = {
+        'mainchain': 'https://mempool.space/api/tx/',
+        'testnetv3': 'https://mempool.space/testnet/api/tx/',
+        'testnetv4': 'https://mempool.space/testnet4/api/tx/',
+        'signet': 'https://mempool.space/signet/api/tx/',
+    };
+    const baseUrl = baseUrls[network] || baseUrls['mainchain'];
+    return baseUrl + txid;
+}
+
+// Load decoded transaction from mempool.space API
+function loadDecodedTransaction(txid) {
+    const loadingEl = document.getElementById('decoded-tx-loading');
+    const errorEl = document.getElementById('decoded-tx-error');
+    const errorMsgEl = document.getElementById('decoded-tx-error-message');
+    const contentEl = document.getElementById('decoded-tx-content');
+    const codeEl = contentEl.querySelector('code');
+
+    if (!network || network === '') {
+        loadingEl.classList.add('d-none');
+        errorEl.classList.remove('d-none');
+        errorMsgEl.textContent = 'Network information is missing.';
+        return;
+    }
+
+    const apiUrl = getMempoolApiUrl(network, txid);
+    console.log('Fetching decoded transaction from:', apiUrl);
+
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            loadingEl.classList.add('d-none');
+            errorEl.classList.add('d-none');
+            contentEl.classList.remove('d-none');
+            codeEl.textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(error => {
+            console.error('Error fetching decoded transaction:', error);
+            loadingEl.classList.add('d-none');
+            errorEl.classList.remove('d-none');
+            errorMsgEl.textContent = error.message || 'Failed to fetch decoded transaction from mempool.space API.';
+        });
 }
 
 function pushTransaction(txid) {
@@ -110,5 +174,13 @@ function pushTransaction(txid) {
         alert('An error occurred while pushing the transaction: ' + error.message);
     });
 }
+
+// Load decoded transaction when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const txid = '{{ tx.txid }}';
+    if (txid) {
+        loadDecodedTransaction(txid);
+    }
+});
 </script>
 {% endblock %} 
