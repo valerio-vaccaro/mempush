@@ -44,20 +44,26 @@
         </div>
 
         <div class="card mb-3">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="card-title mb-0">Decoded Transaction</h6>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#decoded-tx-collapse" aria-expanded="false" aria-controls="decoded-tx-collapse">
+                    <span class="show-text">Show</span>
+                    <span class="hide-text d-none">Hide</span>
+                </button>
             </div>
-            <div class="card-body">
-                <div id="decoded-tx-loading" class="text-center py-3">
-                    <div class="spinner-border spinner-border-sm text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+            <div class="collapse" id="decoded-tx-collapse">
+                <div class="card-body">
+                    <div id="decoded-tx-loading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="ms-2">Loading decoded transaction...</span>
                     </div>
-                    <span class="ms-2">Loading decoded transaction...</span>
+                    <div id="decoded-tx-error" class="alert alert-danger d-none" role="alert">
+                        <strong>Error:</strong> <span id="decoded-tx-error-message"></span>
+                    </div>
+                    <pre id="decoded-tx-content" class="bg-light p-3 rounded d-none"><code></code></pre>
                 </div>
-                <div id="decoded-tx-error" class="alert alert-danger d-none" role="alert">
-                    <strong>Error:</strong> <span id="decoded-tx-error-message"></span>
-                </div>
-                <pre id="decoded-tx-content" class="bg-light p-3 rounded d-none"><code></code></pre>
             </div>
         </div>
         
@@ -99,6 +105,28 @@ function getMempoolApiUrl(network, txid) {
     const baseUrl = baseUrls[network] || baseUrls['mainchain'];
     return baseUrl + txid;
 }
+
+// Setup toggle button text when decoded transaction section is shown/hidden
+document.addEventListener('DOMContentLoaded', function() {
+    const collapseEl = document.getElementById('decoded-tx-collapse');
+    const button = document.querySelector('[data-bs-target="#decoded-tx-collapse"]');
+    
+    if (collapseEl && button) {
+        const showText = button.querySelector('.show-text');
+        const hideText = button.querySelector('.hide-text');
+        
+        // Use Bootstrap's collapse event to update button text
+        collapseEl.addEventListener('shown.bs.collapse', function() {
+            if (showText) showText.classList.add('d-none');
+            if (hideText) hideText.classList.remove('d-none');
+        });
+        
+        collapseEl.addEventListener('hidden.bs.collapse', function() {
+            if (showText) showText.classList.remove('d-none');
+            if (hideText) hideText.classList.add('d-none');
+        });
+    }
+});
 
 // Load decoded transaction from mempool.space API
 function loadDecodedTransaction(txid) {
