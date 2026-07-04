@@ -3,6 +3,7 @@ from app.models import Transaction
 from app import db
 from app.network_config import get_mempool_url, get_explorer_url, is_valid_network, VALID_NETWORKS
 import requests
+from sqlalchemy.exc import OperationalError
 from bitcoinlib.transactions import Transaction as BtcTransaction
 
 bp = Blueprint('main', __name__)
@@ -35,12 +36,26 @@ def about(network):
                          networks=VALID_NETWORKS,
                          onion_url=current_app.config['ONION_URL'])
 
+@bp.route('/<network>/docs')
+def api_docs(network):
+    if not is_valid_network(network):
+        abort(404)
+    return render_template('api_docs.html',
+                         network=network,
+                         networks=VALID_NETWORKS,
+                         onion_url=current_app.config['ONION_URL'])
+
 @bp.route('/<network>/transactions')
 def transactions(network):
     if not is_valid_network(network):
         abort(404)
-    txs = Transaction.get_by_network(network).all()
-    return render_template('transaction_list.html', 
+    try:
+        txs = Transaction.get_by_network(network).all()
+    except OperationalError:
+        # Database not initialized yet: show the page as empty
+        # instead of failing with a 500 error
+        txs = []
+    return render_template('transaction_list.html',
                          transactions=txs, 
                          network=network,
                          networks=VALID_NETWORKS,

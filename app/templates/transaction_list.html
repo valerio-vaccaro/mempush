@@ -3,6 +3,16 @@
 {% block content %}
 <h2 class="mb-4">Transactions</h2>
 
+{% if not transactions %}
+<div class="alert alert-secondary text-center py-5">
+    <i class="bi bi-inbox display-4 d-block mb-3"></i>
+    <h5>No transactions recorded</h5>
+    <p class="mb-3">There are no transactions recorded on <strong>{{ network }}</strong> yet.</p>
+    <a href="{{ url_for('main.index', network=network) }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Submit a transaction
+    </a>
+</div>
+{% else %}
 <div class="form-check mb-3">
     <input class="form-check-input" type="checkbox" id="hideConfirmedToggle">
     <label class="form-check-label" for="hideConfirmedToggle">
@@ -49,6 +59,7 @@
         </tbody>
     </table>
 </div>
+{% endif %}
 
 <script>
 // Get network from template variable or extract from URL

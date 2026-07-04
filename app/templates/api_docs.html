@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-code-slash"></i> API Documentation</h5>
+    </div>
+    <div class="card-body p-0">
+        <div id="swagger-ui"></div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.11.0/swagger-ui.css">
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+<script>
+    window.addEventListener('DOMContentLoaded', function() {
+        SwaggerUIBundle({
+            url: "{{ url_for('static', filename='openapi.yaml') }}",
+            dom_id: '#swagger-ui',
+            presets: [SwaggerUIBundle.presets.apis],
+            layout: 'BaseLayout',
+            docExpansion: 'list',
+            defaultModelsExpandDepth: 1,
+            tryItOutEnabled: true
+        });
+    });
+</script>
+{% endblock %}

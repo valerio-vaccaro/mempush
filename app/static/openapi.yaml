@@ -1,0 +1,386 @@
+openapi: 3.0.3
+info:
+  title: MemPush API
+  description: |
+    API for managing and pushing Bitcoin transactions to the mempool.
+
+    All endpoints are network-scoped: replace `{network}` with one of
+    `mainchain`, `testnetv3`, `testnetv4` or `signet`.
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://github.com/valerio-vaccaro/mempush/blob/main/LICENSE
+
+servers:
+  - url: https://mempush.com
+    description: Production
+  - url: http://localhost:5000
+    description: Local development
+
+tags:
+  - name: Transactions
+    description: Query stored transactions
+  - name: Submit
+    description: Submit new transactions
+  - name: Push
+    description: Push transactions to the mempool
+  - name: Manage
+    description: Manage stored transactions
+
+paths:
+  /{network}/api/transactions:
+    get:
+      tags: [Transactions]
+      summary: List all transactions
+      description: Returns all transactions stored for the given network, newest first.
+      operationId: getTransactions
+      parameters:
+        - $ref: '#/components/parameters/Network'
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '404':
+          $ref: '#/components/responses/InvalidNetwork'
+
+  /{network}/api/transaction/{txid}:
+    get:
+      tags: [Transactions]
+      summary: Get a transaction by txid
+      operationId: getTransaction
+      parameters:
+        - $ref: '#/components/parameters/Network'
+        - $ref: '#/components/parameters/Txid'
+      responses:
+        '200':
+          description: Transaction found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          description: Transaction not found (or invalid network)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /{network}/api/transaction:
+    post:
+      tags: [Submit]
+      summary: Import a transaction by txid
+      description: |
+        Fetches the raw transaction hex from the mempool.space API for the given
+        txid and stores it in the database. The txid is verified against the
+        txid calculated from the fetched hex.
+      operationId: importTransactionByTxid
+      parameters:
+        - $ref: '#/components/parameters/Network'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [txid]
+              properties:
+                txid:
+                  type: string
+                  description: Transaction ID to import
+                  example: 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
+      responses:
+        '200':
+          description: Transaction already exists for this network
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '201':
+          description: Transaction imported and stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          description: Missing or invalid txid, or processing error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Transaction not found on mempool.space (or invalid network)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /{network}/api/transaction/push:
+    post:
+      tags: [Push]
+      summary: Submit a raw transaction and push it to the mempool
+      description: |
+        Validates and stores the raw transaction (if not already present), then
+        immediately broadcasts it to the mempool via mempool.space. The stored
+        transaction status is updated with the result of the push.
+      operationId: pushRawTransaction
+      parameters:
+        - $ref: '#/components/parameters/Network'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [raw_tx]
+              properties:
+                raw_tx:
+                  type: string
+                  description: Raw transaction in hexadecimal format
+                  example: '020000000001...'
+      responses:
+        '201':
+          description: Transaction stored and push attempted (check `status` for the push result)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          description: Missing raw_tx, invalid hex, or processing error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/InvalidNetwork'
+
+  /{network}/transaction/submit:
+    post:
+      tags: [Submit]
+      summary: Submit a transaction (raw hex or txid)
+      description: |
+        Stores a transaction without pushing it to the mempool. Provide either
+        `raw_tx` (raw transaction hex) or `txid` (the raw hex is then fetched
+        from mempool.space). If both are provided, the txid is verified against
+        the txid calculated from the raw hex.
+      operationId: submitTransaction
+      parameters:
+        - $ref: '#/components/parameters/Network'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                raw_tx:
+                  type: string
+                  description: Raw transaction in hexadecimal format
+                txid:
+                  type: string
+                  description: Transaction ID to fetch from mempool.space
+      responses:
+        '200':
+          description: Transaction already exists for this network
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '201':
+          description: Transaction stored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          description: Missing/invalid raw transaction, or txid mismatch
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Transaction not found on mempool.space (or invalid network)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /{network}/transaction/{txid}/push:
+    post:
+      tags: [Push]
+      summary: Push a stored transaction to the mempool
+      description: |
+        Pushes a previously stored transaction to the mempool via mempool.space.
+        If the transaction is already confirmed or already in the mempool, its
+        status is updated accordingly without re-broadcasting.
+      operationId: pushStoredTransaction
+      parameters:
+        - $ref: '#/components/parameters/Network'
+        - $ref: '#/components/parameters/Txid'
+      responses:
+        '200':
+          description: Push result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    $ref: '#/components/schemas/Status'
+                  push_attempts:
+                    type: integer
+                    description: Number of push attempts (present when a push was performed)
+                  analysis_result:
+                    type: string
+                    nullable: true
+                    description: Response from the mempool service or status explanation
+        '404':
+          description: Transaction not found or invalid network
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Error while contacting the mempool service
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  error:
+                    type: string
+                  analysis_result:
+                    type: string
+
+  /{network}/transaction/{txid}/delete:
+    post:
+      tags: [Manage]
+      summary: Delete a stored transaction
+      description: Deletes a transaction from the database. Only transactions with status `confirmed` or `failed` can be deleted.
+      operationId: deleteTransaction
+      parameters:
+        - $ref: '#/components/parameters/Network'
+        - $ref: '#/components/parameters/Txid'
+      responses:
+        '200':
+          description: Transaction deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+        '403':
+          description: Transaction is not in a deletable state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  error:
+                    type: string
+                    example: Only confirmed or failed transactions can be deleted
+        '404':
+          description: Transaction not found (or invalid network)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  parameters:
+    Network:
+      name: network
+      in: path
+      required: true
+      description: Bitcoin network
+      schema:
+        type: string
+        enum: [mainchain, testnetv3, testnetv4, signet]
+        default: mainchain
+    Txid:
+      name: txid
+      in: path
+      required: true
+      description: Transaction ID (64 hex characters)
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{64}$'
+        example: 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
+
+  responses:
+    InvalidNetwork:
+      description: Invalid network
+      content:
+        text/html:
+          schema:
+            type: string
+
+  schemas:
+    Status:
+      type: string
+      description: |
+        Transaction status:
+        * `pending` – stored but never pushed
+        * `success` – accepted by the mempool
+        * `confirmed` – confirmed in the blockchain
+        * `failed` – rejected by the mempool
+        * `error` – error while contacting the mempool service
+      enum: [pending, success, confirmed, failed, error]
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Internal database ID
+          example: 1
+        raw_tx:
+          type: string
+          description: Raw transaction in hexadecimal format
+          example: '020000000001...'
+        txid:
+          type: string
+          description: Transaction ID
+          example: 4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b
+        network:
+          type: string
+          enum: [mainchain, testnetv3, testnetv4, signet]
+          example: mainchain
+        status:
+          $ref: '#/components/schemas/Status'
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-07-04T12:00:00'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-07-04T12:00:00'
+        push_attempts:
+          type: integer
+          description: Number of times a push to the mempool was attempted
+          example: 0
+        analysis_result:
+          type: string
+          nullable: true
+          description: Response from the mempool service or status explanation
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message

@@ -84,6 +84,8 @@ You can switch between networks using the dropdown menu in the navigation bar.
 
 All endpoints are network-specific. Replace `<network>` with one of: `mainchain`, `testnetv3`, `testnetv4`, or `signet`.
 
+📖 **Interactive API documentation** (Swagger UI) is available at `/<network>/docs` (e.g. [https://mempush.com/mainchain/docs](https://mempush.com/mainchain/docs)). The OpenAPI 3.0 specification is served at `/static/openapi.yaml`.
+
 ### 📋 Transaction Management
 
 #### 🌐 Web Interface
