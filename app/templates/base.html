@@ -60,8 +60,14 @@
         {% block content %}{% endblock %}
     </div>
 
-    <footer style="position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px; background-color: #f8f9fa;">
-        <small>Onion URL: {{ onion_url }}</small>
+    <footer style="position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px; background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+        <small class="text-muted">
+            MemPush <strong>{{ app_version }}</strong>
+            <span class="mx-2">|</span>
+            Released under the <a href="https://github.com/valerio-vaccaro/mempush/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+            <span class="mx-2">|</span>
+            Onion URL: {{ onion_url }}
+        </small>
     </footer>
 
     <!-- Bootstrap JS -->
