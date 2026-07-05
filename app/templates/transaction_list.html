@@ -3,6 +3,41 @@
 {% block content %}
 <h2 class="mb-4">Transactions</h2>
 
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="stats-label">Total</div>
+                <div class="stats-value">{{ stats.total_transactions }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="stats-label">Attempted</div>
+                <div class="stats-value">{{ stats.attempted_transactions }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="stats-label">Succeeded</div>
+                <div class="stats-value">{{ stats.successful_transactions + stats.confirmed_transactions }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="stats-label">Failed or error</div>
+                <div class="stats-value">{{ stats.failed_transactions + stats.error_transactions }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% if not transactions %}
 <div class="alert alert-secondary text-center py-5">
     <i class="bi bi-inbox display-4 d-block mb-3"></i>

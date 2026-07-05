@@ -5,12 +5,51 @@ from app.network_config import get_mempool_url, get_explorer_url, is_valid_netwo
 import requests
 from sqlalchemy.exc import OperationalError
 from bitcoinlib.transactions import Transaction as BtcTransaction
+from collections import Counter
 
 bp = Blueprint('main', __name__)
 
 def get_service_url(network):
     """Get mempool service URL for a given network"""
     return get_mempool_url(network)
+
+def get_network_stats_fallback(network):
+    """Return empty stats when the database is not ready yet."""
+    return {
+        'network': network,
+        'total_transactions': 0,
+        'attempted_transactions': 0,
+        'pending_transactions': 0,
+        'successful_transactions': 0,
+        'confirmed_transactions': 0,
+        'failed_transactions': 0,
+        'error_transactions': 0,
+        'total_push_attempts': 0,
+        'latest_transaction_at': None,
+        'latest_transaction_txid': None,
+    }
+
+def get_network_stats(network, txs=None):
+    """Build aggregate stats for a specific network."""
+    txs = txs if txs is not None else Transaction.get_by_network(network).all()
+    status_counts = Counter(tx.status for tx in txs)
+    total_transactions = len(txs)
+    attempted_transactions = sum(1 for tx in txs if tx.push_attempts > 0)
+    latest_transaction = txs[0] if txs else None
+
+    return {
+        'network': network,
+        'total_transactions': total_transactions,
+        'attempted_transactions': attempted_transactions,
+        'pending_transactions': status_counts.get('pending', 0),
+        'successful_transactions': status_counts.get('success', 0),
+        'confirmed_transactions': status_counts.get('confirmed', 0),
+        'failed_transactions': status_counts.get('failed', 0),
+        'error_transactions': status_counts.get('error', 0),
+        'total_push_attempts': sum(tx.push_attempts for tx in txs),
+        'latest_transaction_at': latest_transaction.created_at.isoformat() if latest_transaction else None,
+        'latest_transaction_txid': latest_transaction.txid if latest_transaction else None,
+    }
 
 # Redirect root to mainchain
 @bp.route('/')
@@ -22,9 +61,14 @@ def root():
 def index(network):
     if not is_valid_network(network):
         abort(404)
+    try:
+        stats = get_network_stats(network)
+    except OperationalError:
+        stats = get_network_stats_fallback(network)
     return render_template('index.html', 
                          network=network, 
                          networks=VALID_NETWORKS,
+                         stats=stats,
                          onion_url=current_app.config['ONION_URL'])
 
 @bp.route('/<network>/about')
@@ -51,14 +95,31 @@ def transactions(network):
         abort(404)
     try:
         txs = Transaction.get_by_network(network).all()
+        stats = get_network_stats(network, txs)
     except OperationalError:
         # Database not initialized yet: show the page as empty
         # instead of failing with a 500 error
         txs = []
+        stats = get_network_stats_fallback(network)
     return render_template('transaction_list.html',
                          transactions=txs, 
                          network=network,
                          networks=VALID_NETWORKS,
+                         stats=stats,
+                         onion_url=current_app.config['ONION_URL'])
+
+@bp.route('/<network>/stats')
+def stats(network):
+    if not is_valid_network(network):
+        abort(404)
+    try:
+        network_stats = get_network_stats(network)
+    except OperationalError:
+        network_stats = get_network_stats_fallback(network)
+    return render_template('stats.html',
+                         network=network,
+                         networks=VALID_NETWORKS,
+                         stats=network_stats,
                          onion_url=current_app.config['ONION_URL'])
 
 @bp.route('/<network>/transaction/<txid>')
@@ -235,6 +296,16 @@ def api_get_transactions(network):
         abort(404)
     txs = Transaction.get_by_network(network).all()
     return jsonify([tx.to_dict() for tx in txs])
+
+@bp.route('/<network>/api/stats', methods=['GET'])
+def api_get_stats(network):
+    if not is_valid_network(network):
+        abort(404)
+    try:
+        stats = get_network_stats(network)
+    except OperationalError:
+        stats = get_network_stats_fallback(network)
+    return jsonify(stats)
 
 @bp.route('/<network>/api/transaction/<txid>', methods=['GET'])
 def api_get_transaction(network, txid):

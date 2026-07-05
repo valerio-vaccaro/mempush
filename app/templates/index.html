@@ -10,6 +10,41 @@
     <p class="lead">Push your Bitcoin transactions to the network</p>
 </div>
 
+<div class="row g-3 mb-5">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="stats-label">Tracked transactions</div>
+                <div class="stats-value">{{ stats.total_transactions }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="stats-label">Push attempts</div>
+                <div class="stats-value">{{ stats.total_push_attempts }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="stats-label">Confirmed</div>
+                <div class="stats-value">{{ stats.confirmed_transactions }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stats-card h-100">
+            <div class="card-body">
+                <div class="stats-label">Pending</div>
+                <div class="stats-value">{{ stats.pending_transactions }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-md-6">
         <div class="card mb-4">
